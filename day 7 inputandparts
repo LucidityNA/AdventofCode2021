@@ -1,0 +1,10 @@
+#INPUT
+f = open("day-7-input.txt", "r")
+data = [int(x) for x in f.read().split("\n")[0].split(",")]
+f.close()
+
+#PART 1
+#print(find_solution1(data))
+
+#PART 2
+print(find_solution2(data))
