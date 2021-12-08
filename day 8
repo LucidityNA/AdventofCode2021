@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+
+import pathlib
+import sys
+
+from collections import defaultdict
+from typing import List
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / 'lib'))
+
+import aoc
+
+
+def count_simple_outputs(patterns: List[List[str]]) -> int:
+  return sum(1 for p in patterns for x in p[1] if len(x) in {2, 3, 4, 7})
+
+
+def translate_outputs(patterns: List[List[str]]) -> List[int]:
+
+  # which segments are active for each digit
+  wire_map = {
+    0: {0, 1, 2, 4, 5, 6},
+    1: {2, 5},
+    2: {0, 2, 3, 4, 6},
+    3: {0, 2, 3, 5, 6},
+    4: {1, 2, 3, 5},
+    5: {0, 1, 3, 5, 6},
+    6: {0, 1, 3, 4, 5, 6},
+    7: {0, 2, 5},
+    8: {0, 1, 2, 3, 4, 5, 6},
+    9: {0, 1, 2, 3, 5, 6}
+  }
+
+  # group digits by the number of segments lit in each digit
+  wire_len_map = defaultdict(set)
+  for k, v in wire_map.items():
+    wire_len_map[len(v)].add(k)
+
+  outputs = []
+  for [tests, digits] in patterns:
+
+    # for our initial candidate, every segment could be lit
+    # by every possible signal
+    wire = [{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'} for _ in range(7)]
+    wires = [wire]
+
+    for test in tests:
+      new_wires = []
+
+      candidates = wire_len_map[len(test)]
+
+      for n in candidates:
+        for wire in wires:
+          new_wire = [wire[i] & set(test) if i in wire_map[n] else wire[i] for i in range(7)]
+
+          # run over each segment and make sure that any segment with
+          # only 1 remaining candidate is not part of any other segment
+          for i in range(7):
+            if len(new_wire[i]) == 1:
+              new_wire = [new_wire[x] - set(new_wire[i]) if i != x else new_wire[x] for x in range(7)]
+
+          # the wire is only valid if each segment still has at least 1
+          # candidate signal
+          if all([len(x) > 0 for x in new_wire]):
+            new_wires.append(new_wire)
+
+      wires = new_wires
+
+    wire_remap = {list(wires[0][n])[0]: n for n in range(7)}
+
+    output = 0
+    for digit in digits:
+      segments = {wire_remap[x] for x in digit}
+      for n in wire_map:
+        if wire_map[n] == segments:
+          output = output * 10 + n
+          break
+
+    outputs.append(output)
+  
+  return outputs
+
+
+def run() -> None:
+  patterns = []
+  input_file = aoc.inputfile('input.txt')
+  for line in open(input_file).readlines():
+    tests, digits = (x.split() for x in line.strip().split(" | "))
+    patterns.append([sorted(tests, key=lambda x: len(x)), digits])
+
+  print(f'Simple output count: {count_simple_outputs(patterns)}')
+
+  outputs = translate_outputs(patterns)
+  print(f"Output sum: {sum(outputs)}\nOutputs:\n{outputs})")
+
+
+if __name__ == '__main__':
+  run()
+  sys.exit(0)
